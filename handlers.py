@@ -3,6 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 
+# NOTE: These channel IDs are now expected to be STRINGS (usernames or links)
 from config import (
     MAIN_CHANNEL,
     BACKUP_CHANNEL,
@@ -35,12 +36,14 @@ from utils import validate_input, clean_json # Import both utility functions
 logger = logging.getLogger(__name__)
 
 # -------------------------------------------------
-# CHECK USER JOINED 3 CHANNELS
+# CHECK USER JOINED 3 CHANNELS (Uses String Usernames/Links)
 # -------------------------------------------------
 async def is_joined_all(bot, user_id):
+    """Checks if a user has joined all required channels using the channel username/link."""
     try:
         status_ok = ("member", "administrator", "creator")
         
+        # NOTE: get_chat_member accepts channel usernames/links (strings) for chat_id
         m1 = await bot.get_chat_member(MAIN_CHANNEL, user_id)
         m2 = await bot.get_chat_member(BACKUP_CHANNEL, user_id)
         m3 = await bot.get_chat_member(PRIVATE_CHANNEL, user_id)
@@ -52,6 +55,7 @@ async def is_joined_all(bot, user_id):
             m3.status in status_ok  
         )  
     except Exception as e:  
+        # This will catch errors if the user hasn't joined or the channel name is wrong
         logger.error(f"Channel check failed for user {user_id}: {e}")
         return False
 
@@ -67,11 +71,13 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if args and args[0].isdigit():  
         ref = int(args[0])  
 
+    # Create user and check if they are new
     created = create_user(user.id, user.username, user.first_name)  
 
     if created and ref and ref != user.id:  
         add_referral(ref, user.id)  
         try:  
+            # Notify referrer of new referral and credit
             await ctx.bot.send_message(  
                 chat_id=ref,  
                 text="🎉 *New Referral!* Someone installed using your link.\nYou received +1 Credit 💳*",  
@@ -105,6 +111,7 @@ async def verify_join(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     if await is_joined_all(ctx.bot, q.from_user.id):  
         try:
+            # Try to delete the original message for a cleaner chat
             await q.message.delete()
         except:
             pass
@@ -203,6 +210,7 @@ async def process_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )  
         return  
 
+    # Check if a lookup mode has been selected (e.g., by clicking a button)
     if "mode" not in ctx.user_data:  
         await update.message.reply_text(
             "Please select a lookup option first from the Main Menu.",
@@ -212,7 +220,7 @@ async def process_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             
     mode = ctx.user_data["mode"]
     
-    # --- Input Validation ---
+    # --- Input Validation (CRITICAL FIX) ---
     lookup_type = mode.replace("_lookup", "")
     if not validate_input(lookup_type, msg):
         await update.message.reply_text(
@@ -272,6 +280,6 @@ async def process_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
     
-    # Clear the mode context after use
+    # Clear the mode context after successful use
     del ctx.user_data["mode"]
-  
+    
