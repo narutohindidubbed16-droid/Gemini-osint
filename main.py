@@ -1,3 +1,5 @@
+# main.py (FINAL VERSION)
+
 import os
 import asyncio
 import logging
@@ -17,10 +19,9 @@ from handlers import (
     process_text
 )
 
-# --- Configuration for Webhook ---
+# --- Configuration for Webhook/Polling ---
 PORT = int(os.environ.get('PORT', 8080))
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL") 
-# Fallback to Polling for local testing if WEBHOOK_URL is not set
 POLLING_MODE = WEBHOOK_URL is None
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -45,33 +46,36 @@ async def run_bot():
 
     if not POLLING_MODE:
         # --- Start Webhook (for Render) ---
-        try:
-            full_webhook_url = WEBHOOK_URL + BOT_TOKEN
-            await app.bot.set_webhook(url=full_webhook_url)
-            logger.info(f"✅ Webhook set to: {full_webhook_url}")
-            
-            # Start the web server
-            await app.run_webhook(
-                listen="0.0.0.0",
-                port=PORT,
-                url_path=BOT_TOKEN, 
-                webhook_url=full_webhook_url
-            )
-            logger.info(f"✅ Bot is LIVE & Running on port {PORT} (WEBHOOK)…")
-        except Exception as e:
-            logger.error(f"CRITICAL WEBHOOK ERROR: {e}")
+        full_webhook_url = WEBHOOK_URL + BOT_TOKEN
+        await app.bot.set_webhook(url=full_webhook_url)
+        logger.info(f"✅ Webhook set to: {full_webhook_url}")
+        
+        # Start the web server
+        await app.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            url_path=BOT_TOKEN, 
+            webhook_url=full_webhook_url
+        )
+        logger.info(f"✅ Bot is LIVE & Running on port {PORT} (WEBHOOK)…")
             
     else:
         # --- Fallback to Polling (for local dev) ---
         logger.warning("⚠️ WEBHOOK_URL not set. Running in Polling mode...")
+        # NOTE: We simply call run_polling without complex loop management
         await app.run_polling(close_loop=False)
 
 
+# ---------------------------------------------------
+# ENTRY POINT (SIMPLIFIED FIX)
+# ---------------------------------------------------
 if __name__ == "__main__":
+    # Use run() only once. If the environment is already running a loop, 
+    # asyncio.run() handles it gracefully in newer Python versions, 
+    # or the initial error is the only way to detect a pre-existing loop.
+    # The original try/except logic was the cause of the double loop.
     try:
         asyncio.run(run_bot())
-    except RuntimeError:
-        # For systems (like some IDEs) that already have a running loop
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(run_bot())
-      
+    except Exception as e:
+        logger.error(f"Failed to start bot: {e}")
+        
