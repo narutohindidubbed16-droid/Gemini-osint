@@ -1,3 +1,4 @@
+import os
 import asyncio
 import logging
 from telegram.ext import (
@@ -16,7 +17,6 @@ from handlers import (
     process_text
 )
 
-# Logging setup
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 async def run_bot():
     logger.info("🚀 Starting Nagi OSINT PRO in Polling Mode...")
     
-    # Application setup
     app = (
         ApplicationBuilder()
         .token(BOT_TOKEN)
@@ -38,19 +37,22 @@ async def run_bot():
     app.add_handler(CallbackQueryHandler(buttons))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, process_text))
 
-    # --- Start Polling (Webhook logic removed) ---
+    # --- Start Polling ---
     logger.info("✅ Bot is LIVE & Running (POLLING MODE)…")
-    # app.run_polling() directly starts the Polling loop.
     await app.run_polling(close_loop=False)
 
 
 # ---------------------------------------------------
-# ENTRY POINT
+# ENTRY POINT (FIXED FOR RENDER'S EVENT LOOP)
 # ---------------------------------------------------
 if __name__ == "__main__":
+    import asyncio
+    
+    # This method attaches the bot's async function to the existing 
+    # event loop, solving the "already running" error.
     try:
-        # Start the main asynchronous function
-        asyncio.run(run_bot())
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(run_bot())
     except Exception as e:
         logger.error(f"Failed to start bot: {e}")
         
