@@ -1,5 +1,4 @@
 import os
-import asyncio
 import logging
 from telegram.ext import (
     ApplicationBuilder,
@@ -10,20 +9,18 @@ from telegram.ext import (
 )
 
 from config import BOT_TOKEN
-from handlers import (
-    start,
-    verify_join,
-    buttons,
-    process_text
-)
+from handlers import start, verify_join, buttons, process_text
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
+
 
 async def run_bot():
     logger.info("🚀 Starting Nagi OSINT PRO in Polling Mode...")
-    
+
     app = (
         ApplicationBuilder()
         .token(BOT_TOKEN)
@@ -31,30 +28,21 @@ async def run_bot():
         .build()
     )
 
-    # --- Handlers ---
+    # Handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(verify_join, pattern="verify_join"))
     app.add_handler(CallbackQueryHandler(buttons))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, process_text))
 
-    # --- Start Polling ---
     logger.info("✅ Bot is LIVE & Running (POLLING MODE)…")
-    await app.run_polling(close_loop=False)
+
+    # DO NOT create loops manually — PTB handles it internally
+    await app.run_polling()
 
 
-# ---------------------------------------------------
-# ENTRY POINT (FIXED FOR RENDER'S EVENT LOOP)
-# ---------------------------------------------------
+# -----------------------------
+# CORRECT ENTRY POINT FOR RENDER
+# -----------------------------
 if __name__ == "__main__":
     import asyncio
-    
-    # This method forces the creation of a new, isolated event loop for the bot, 
-    # resolving the conflict with the hosting environment's existing loop.
-    try:
-        new_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(new_loop)
-        
-        new_loop.run_until_complete(run_bot())
-    except Exception as e:
-        logger.error(f"Failed to start bot: {e}")
-        
+    asyncio.run(run_bot())
