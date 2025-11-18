@@ -1,6 +1,3 @@
-# main.py (FINAL VERSION)
-
-import os
 import asyncio
 import logging
 from telegram.ext import (
@@ -19,18 +16,15 @@ from handlers import (
     process_text
 )
 
-# --- Configuration for Webhook/Polling ---
-PORT = int(os.environ.get('PORT', 8080))
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL") 
-POLLING_MODE = WEBHOOK_URL is None
-
+# Logging setup
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 async def run_bot():
-    logger.info("🚀 Starting Nagi OSINT PRO...")
+    logger.info("🚀 Starting Nagi OSINT PRO in Polling Mode...")
     
+    # Application setup
     app = (
         ApplicationBuilder()
         .token(BOT_TOKEN)
@@ -44,37 +38,18 @@ async def run_bot():
     app.add_handler(CallbackQueryHandler(buttons))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, process_text))
 
-    if not POLLING_MODE:
-        # --- Start Webhook (for Render) ---
-        full_webhook_url = WEBHOOK_URL + BOT_TOKEN
-        await app.bot.set_webhook(url=full_webhook_url)
-        logger.info(f"✅ Webhook set to: {full_webhook_url}")
-        
-        # Start the web server
-        await app.run_webhook(
-            listen="0.0.0.0",
-            port=PORT,
-            url_path=BOT_TOKEN, 
-            webhook_url=full_webhook_url
-        )
-        logger.info(f"✅ Bot is LIVE & Running on port {PORT} (WEBHOOK)…")
-            
-    else:
-        # --- Fallback to Polling (for local dev) ---
-        logger.warning("⚠️ WEBHOOK_URL not set. Running in Polling mode...")
-        # NOTE: We simply call run_polling without complex loop management
-        await app.run_polling(close_loop=False)
+    # --- Start Polling (Webhook logic removed) ---
+    logger.info("✅ Bot is LIVE & Running (POLLING MODE)…")
+    # app.run_polling() directly starts the Polling loop.
+    await app.run_polling(close_loop=False)
 
 
 # ---------------------------------------------------
-# ENTRY POINT (SIMPLIFIED FIX)
+# ENTRY POINT
 # ---------------------------------------------------
 if __name__ == "__main__":
-    # Use run() only once. If the environment is already running a loop, 
-    # asyncio.run() handles it gracefully in newer Python versions, 
-    # or the initial error is the only way to detect a pre-existing loop.
-    # The original try/except logic was the cause of the double loop.
     try:
+        # Start the main asynchronous function
         asyncio.run(run_bot())
     except Exception as e:
         logger.error(f"Failed to start bot: {e}")
