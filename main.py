@@ -48,11 +48,13 @@ async def run_bot():
 if __name__ == "__main__":
     import asyncio
     
-    # This method attaches the bot's async function to the existing 
-    # event loop, solving the "already running" error.
+    # This method forces the creation of a new, isolated event loop for the bot, 
+    # resolving the conflict with the hosting environment's existing loop.
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(run_bot())
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        
+        new_loop.run_until_complete(run_bot())
     except Exception as e:
         logger.error(f"Failed to start bot: {e}")
         
