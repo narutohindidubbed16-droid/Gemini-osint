@@ -2,47 +2,44 @@ import os
 import asyncio
 import logging
 import nest_asyncio
+import sys
+from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
-    MessageHandler,
-    CallbackQueryHandler,
     ContextTypes,
+    MessageHandler,
     filters
 )
 
-# Import keep-alive server
-from keep_alive import keep_alive
+try:
+    from keep_alive import keep_alive
+except ImportError:
+    print("FATAL ERROR: Could not import 'keep_alive.py'.")
+    sys.exit(1)
 
-# Import your handlers
-from handlers import (
-    start,
-    verify_join,
-    buttons,
-    process_text
-)
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-# Enable nest_asyncio
-nest_asyncio.apply()
-
-# Logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-if not BOT_TOKEN:
-    raise SystemExit("FATAL ERROR ❌ — BOT_TOKEN is missing from Environment Variables.")
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("👋 Hello! Bot is alive and polling.")
+
+async def echo_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"You said: {update.message.text}")
 
 
-# -------------------------
-# MAIN BOT RUNNER
-# -------------------------
 async def run_bot():
-    logger.info("🚀 Initializing Application...")
+    if not BOT_TOKEN:
+        logger.error("BOT_TOKEN not set!")
+        os._exit(1)
+
+    logger.info("🚀 Initializing Application Builder...")
 
     app = (
         ApplicationBuilder()
@@ -51,39 +48,31 @@ async def run_bot():
         .build()
     )
 
-    # -------------------------
-    # Add All Handlers
-    # -------------------------
+    # Handlers
     app.add_handler(CommandHandler("start", start))
-
-    # Callback button handler
-    app.add_handler(CallbackQueryHandler(verify_join, pattern="verify_join"))
-    app.add_handler(CallbackQueryHandler(buttons))
-
-    # Message handler
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, process_text))
-
-    # -------------------------
-    # Start Polling Manually (stable)
-    # -------------------------
-    await app.initialize()
-    await app.start()
-
-    logger.info("✅ Polling Started — Bot is online!")
-
-    await asyncio.Future()   # Keep alive forever
-
-
-# -------------------------
-# ENTRY POINT
-# -------------------------
-if __name__ == "__main__":
-    logger.info("🔄 Applying nest_asyncio & Starting keep-alive server...")
-    keep_alive()  # Start Waitress server (Render requirement)
-
-    logger.info("🤖 Starting bot event loop...")
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_message))
 
     try:
-        asyncio.run(run_bot())
+        logger.info("Starting bot...")
+
+        await app.initialize()
+        await app.start()      # PTB v20+ auto-starts polling here
+
+        logger.info("✅ Bot is ONLINE & POLLING.")
+        await asyncio.Future()  # keep alive
+
     except Exception as e:
-        logger.error(f"❌ FATAL ERROR in main asyncio loop: {e}")
+        logger.error(f"ERROR: {e}")
+    finally:
+        await app.stop()
+        logger.info("Bot stopped.")
+
+
+if __name__ == '__main__':
+    logger.info("Applying nest_asyncio patch...")
+    nest_asyncio.apply()
+
+    keep_alive()
+
+    logger.info("Starting bot loop...")
+    asyncio.run(run_bot())
