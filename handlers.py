@@ -39,26 +39,21 @@ logger = logging.getLogger(__name__)
 # CHECK USER JOINED 3 CHANNELS (Uses String Usernames/Links)
 # -------------------------------------------------
 async def is_joined_all(bot, user_id):
-    """Checks if a user has joined all required channels using the channel username/link."""
+    """Checks if a user has joined required channels (MAIN + BACKUP only)."""
     try:
         status_ok = ("member", "administrator", "creator")
         
-        # NOTE: get_chat_member accepts channel usernames/links (strings) for chat_id
         m1 = await bot.get_chat_member(MAIN_CHANNEL, user_id)
         m2 = await bot.get_chat_member(BACKUP_CHANNEL, user_id)
-        m3 = await bot.get_chat_member(PRIVATE_CHANNEL, user_id)
         
-        # Check if all status are in the allowed list
-        return (  
-            m1.status in status_ok and  
-            m2.status in status_ok and  
-            m3.status in status_ok  
-        )  
-    except Exception as e:  
-        # This will catch errors if the user hasn't joined or the channel name is wrong
+        return (
+            m1.status in status_ok and
+            m2.status in status_ok
+        )
+        
+    except Exception as e:
         logger.error(f"Channel check failed for user {user_id}: {e}")
         return False
-
 # -------------------------------------------------
 # /start COMMAND
 # -------------------------------------------------
