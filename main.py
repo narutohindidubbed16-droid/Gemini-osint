@@ -1,45 +1,49 @@
 import os
 import asyncio
-import logging
 import nest_asyncio
+import logging
 import sys
-from telegram import Update
+
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
-    ContextTypes,
     MessageHandler,
+    CallbackQueryHandler,
     filters
 )
 
+# -------- Keep Alive (Render fix) --------
 try:
     from keep_alive import keep_alive
-except ImportError:
-    print("FATAL ERROR: Could not import 'keep_alive.py'.")
+except:
+    print("ERROR: keep_alive.py missing!")
     sys.exit(1)
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+# -------- Handlers Import --------
+from handlers import (
+    start,
+    buttons,
+    verify_join,
+    process_text
+)
 
+# -------- Logging --------
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(levelname)s - %(message)s",
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Hello! Bot is alive and polling.")
-
-async def echo_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"You said: {update.message.text}")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 
 async def run_bot():
+
     if not BOT_TOKEN:
-        logger.error("BOT_TOKEN not set!")
+        logger.error("BOT_TOKEN missing in environment!")
         os._exit(1)
 
-    logger.info("🚀 Initializing Application Builder...")
+    logger.info("🔧 Initializing bot...")
 
     app = (
         ApplicationBuilder()
@@ -48,31 +52,43 @@ async def run_bot():
         .build()
     )
 
-    # Handlers
+    # -------- REGISTER HANDLERS --------
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_message))
 
+    # Buttons (callback_query)
+    app.add_handler(CallbackQueryHandler(buttons))
+    app.add_handler(CallbackQueryHandler(verify_join, pattern="verify_join"))
+
+    # Text processor
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, process_text)
+    )
+
+    # -------- START BOT --------
     try:
-        logger.info("Starting bot...")
-
         await app.initialize()
-        await app.start()      # PTB v20+ auto-starts polling here
+        await app.start()
+
+        # Render Fix
+        await app.updater.start_polling()
 
         logger.info("✅ Bot is ONLINE & POLLING.")
-        await asyncio.Future()  # keep alive
+        await asyncio.Future()
 
     except Exception as e:
-        logger.error(f"ERROR: {e}")
+        logger.error(f"❌ Polling Error: {e}")
+
     finally:
-        await app.stop()
-        logger.info("Bot stopped.")
+        if app.running:
+            await app.stop()
+        logger.info("Bot Stopped!")
 
 
-if __name__ == '__main__':
-    logger.info("Applying nest_asyncio patch...")
+if __name__ == "__main__":
     nest_asyncio.apply()
-
     keep_alive()
 
-    logger.info("Starting bot loop...")
-    asyncio.run(run_bot())
+    try:
+        asyncio.run(run_bot())
+    except Exception as e:
+        logger.error(f"Fatal Error: {e}")
