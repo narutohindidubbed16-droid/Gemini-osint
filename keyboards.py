@@ -6,10 +6,11 @@ from config import MAIN_CHANNEL, BACKUP_CHANNEL, PRIVATE_CHANNEL
 # --------------------------------
 def join_channels_kb():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📢 JOIN Main Channel", url=f"https://t.me/{MAIN_CHANNEL}")],
-        [InlineKeyboardButton("📢 JOIN Backup Channel", url=f"https://t.me/{BACKUP_CHANNEL}")],
-        [InlineKeyboardButton("📢 JOIN Updates Channel", url=f"https://t.me/{PRIVATE_CHANNEL}")],
-        [InlineKeyboardButton("✅ I HAVE JOINED ALL CHANNELS", callback_data="verify_join")]
+        [InlineKeyboardButton("📢 𝙅𝙊𝙄𝙉 𝘿𝘼𝙍𝙆 𝙉𝘼𝙂𝙄", url=f"https://t.me/{MAIN_CHANNEL}")],
+        [InlineKeyboardButton("📢 𝙅𝙊𝙄𝙉 𝘽𝘼𝘾𝙆𝙐𝙋", url=f"https://t.me/{BACKUP_CHANNEL}")],
+        [InlineKeyboardButton("📢 𝙅𝙊𝙄𝙉 𝘼𝙗𝙙𝙪𝙡𝘽𝙤𝙩𝙯", url=f"https://t.me/{PRIVATE_CHANNEL}")],
+        [InlineKeyboardButton("✅ 𝙄 𝙃𝘼𝙑𝙀 𝙅𝙊𝙄𝙉𝙀𝘿 𝘼𝙇𝙇 𝘾𝙃𝘼𝙉𝙉𝙀𝙇𝙎
+        ", callback_data="verify_join")]
     ])
 
 # --------------------------------
