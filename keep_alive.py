@@ -2,10 +2,17 @@ import os
 import threading
 from flask import Flask
 import logging
+import sys
 
-# Setup logging specific to the keep_alive module
+# --- Setup Logging ---
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+# Ensure handlers are present if this file is run directly
+if not logger.handlers:
+    handler = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 # --- Flask App Configuration ---
 # Get the port Render provides
@@ -20,20 +27,21 @@ def alive_check():
 def run_flask_server():
     """Function to run the Flask server."""
     try:
-        # We run Flask with threaded=True, listening on 0.0.0.0
-        logger.info(f"Starting Flask keep-alive server on port {PORT}...")
+        # Crucial: use_reloader=False prevents Flask from running twice, which can cause issues.
+        logger.info(f"Flask Server: Starting keep-alive server on port {PORT}...")
+        # Note: Render often overrides the port to 10000, which is normal.
         app_flask.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)
     except Exception as e:
-        logger.error(f"Flask server failed to start: {e}")
+        logger.error(f"Flask Server: Failed to start server: {e}")
 
 def keep_alive():
-    """Exposed function to start the Flask server in a background thread."""
+    """Exposed function to start the Flask server in a background daemon thread."""
     # Start the server in a separate daemon thread
     t = threading.Thread(target=run_flask_server, daemon=True)
     t.start()
-    logger.info("Keep-alive thread started successfully.")
+    logger.info("Flask Server: Keep-alive thread started successfully.")
 
 if __name__ == '__main__':
-    # If this file is run directly, start the server normally (for testing)
+    # This block is for local testing and should not run on Render deployment
+    logger.warning("Running keep_alive.py directly. This is usually only for local testing.")
     run_flask_server()
-  
