@@ -65,21 +65,20 @@ SEARCHING_TEXT = """
 # CHECK CHANNELS (MAIN + BACKUP ONLY)
 # -------------------------------------------------
 async def is_joined_all(bot, user_id):
-    """Checks if a user has joined all required channels using the channel username/link."""
     try:
         status_ok = ("member", "administrator", "creator")
-        
-        m1 = await bot.get_chat_member(MAIN_CHANNEL, user_id)
-        m2 = await bot.get_chat_member(BACKUP_CHANNEL, user_id)
-        m3 = await bot.get_chat_member(PRIVATE_CHANNEL, user_id)  # ❌ REMOVE THIS
-        
+
+        # CHECK ONLY BACKUP + MAIN
+        c1 = await bot.get_chat_member(BACKUP_CHANNEL, user_id)
+        c2 = await bot.get_chat_member(MAIN_CHANNEL, user_id)
+
         return (
-            m1.status in status_ok and
-            m2.status in status_ok and
-            m3.status in status_ok
+            c1.status in status_ok and
+            c2.status in status_ok
         )
+
     except Exception as e:
-        logger.error(f"Channel check failed for user {user_id}: {e}")
+        logger.error(f"Join check failed: {e}")
         return False
 
 # -------------------------------------------------
@@ -124,7 +123,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # -------------------------------------------------
 # VERIFY JOIN
 # -------------------------------------------------
-async def verify_join(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+async def verify_join(update, ctx):
     q = update.callback_query
     await q.answer()
 
@@ -136,8 +135,9 @@ async def verify_join(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown"
         )
     else:
-        await q.message.reply_text(
-            "❌ Join required channels first.",
+        await ctx.bot.send_message(
+            chat_id=q.from_user.id,
+            text="❌ Please join Backup + AbdulBotz channels first.",
             reply_markup=join_channels_kb()
         )
 
