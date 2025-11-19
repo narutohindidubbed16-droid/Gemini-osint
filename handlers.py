@@ -1,3 +1,4 @@
+print("LOADED NEW HANDLERS v69")
 import aiohttp
 import logging
 from telegram import Update
